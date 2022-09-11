@@ -6,3 +6,5 @@ node_modules
 .env
 .env.*
 !.env.example
+/src/data/gradings.json
+/src/data/scores.json

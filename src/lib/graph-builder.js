@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import {loadData} from './load-data.js';
-import {getGradings, gradeSingleWord,  gradeToNumber, settify } from './build-gradings.js';
+import {gradeSingleWord,  gradeToNumber } from './build-gradings.js';
+import {getScores} from './build-scores.js';
 
 /**
  *  @typedef {{[key: string]: number[]}} Grades
@@ -77,14 +78,14 @@ function fastHeuristic(graphBuilder, possibleSolutions) {
 class GraphBuilder {
   moveCounter = 0;
   /**
-   * @param {GradeSet[]} gradings
+   * @param {number[][]} scores
    * @param {function} heuristic
    * @param {string[]} solutions
    * @param {string[]} words
    * @param {number} wordIndex
    */
-  constructor(gradings, heuristic, solutions, words, wordIndex) {
-    this.gradings = gradings;
+  constructor(scores, heuristic, solutions, words, wordIndex) {
+    this.scores = scores;
     this.heuristic = heuristic || basicHeuristic;
     this.nbSolutions = solutions.length;
     this.nbWords = words.length;
@@ -100,15 +101,9 @@ class GraphBuilder {
   groupSolutions(wordIndex, possibleSolutions) {
     /** @type {Grades} */const groups = {};
     for (const solutionIndex of possibleSolutions) {
-      
-      const grade = this.gradings[solutionIndex];
-      const possibleGrades = Object.entries(grade);
-      for (const [grade, words] of possibleGrades) {
-        if (words.has(wordIndex)) {
-          groups[grade] = groups[grade] || [];
-          groups[grade].push(solutionIndex);
-        }
-      }
+      const grade = this.scores[solutionIndex][wordIndex];
+      groups[grade] = groups[grade] || [];
+      groups[grade].push(solutionIndex);
     }
     return groups;
   }
@@ -136,11 +131,11 @@ class GraphBuilder {
         grade,
         move: firstSolution,
         children: [{
-          grade: gradeToNumber('PPPPP'),
+          grade: this.scores[firstSolution][firstSolution],
           solution: firstSolution,
         },
         {
-          grade: gradeSingleWord(this.solutions[secondSolution], this.solutions[firstSolution]),
+          grade: this.scores[secondSolution][firstSolution],
           solution: secondSolution
         }]
       };
@@ -149,10 +144,13 @@ class GraphBuilder {
     // to determine the best move. 
 
     const {bestMove, groups} = this.heuristic(this, possibleSolutions);
-    const children = Object.entries(groups).map(([grade, solutions]) => this.nextMove(
-      Number(grade),
-      solutions, 
-    ));
+    const children = Object.entries(groups)
+      // highest grade to lowest grade
+      .sort((a, b) => Number(b[0]) - Number(a[0]))
+      .map(([grade, solutions]) => this.nextMove(
+        Number(grade),
+        solutions, 
+      ));
       
     return {
       move: bestMove,
@@ -174,7 +172,8 @@ class GraphBuilder {
         return this.nextMove(Number(grade), remainingSolutions, 1);
       })
     };
-    return JSON.stringify(graph);
+    // removing the quotes from the output to save space
+    return JSON.stringify(graph).replaceAll('"', '');
   }
 }
 
@@ -182,24 +181,26 @@ class GraphBuilder {
  * @param {number} startWord
  * @param {number} endWord
  * @param {string} prefix
- * @param {string?} gradingsFile 
+ * @param {string?} scoringFile 
+ * @param {boolean?} save
  */
-function buildGraph(startWord = 0, endWord = Infinity, prefix, gradingsFile) {
+function buildGraph(startWord = 0, endWord = Infinity, prefix, scoringFile, save) {
   const {solutions, allWords} = loadData('../data/words.json');
 
-  const gradingsArray = getGradings(solutions, allWords, gradingsFile);
-  if (!gradingsFile) {
-    writeFileSync('../data/gradings.json', JSON.stringify(gradingsArray));
+  const scores = getScores(solutions, allWords, scoringFile);
+  if (!scoringFile) {
+    writeFileSync('../data/scoring.json', JSON.stringify(scores));
   }
-  console.log('done getting gradingsArray', gradingsArray.length);
-  const gradings = settify(gradingsArray); 
-  console.log('done settifying', gradings.length);
   for (let wordIndex = startWord; wordIndex < endWord && wordIndex < allWords.length; wordIndex++) {
     console.log('now working on', wordIndex);
-    const graphBuilder = new GraphBuilder(gradings, fastHeuristic, solutions, allWords, wordIndex);
+    const graphBuilder = new GraphBuilder(scores, fastHeuristic, solutions, allWords, wordIndex);
     const graph = graphBuilder.build();
-    writeFileSync(`../data/graphs/${prefix}/${wordIndex}.json`, graph);
+    if (save) {
+      writeFileSync(`../data/graphs/${prefix}/${allWords[wordIndex]}.json`, graph);
+    } else {
+      console.log(graph);
+    }
   }
 }
 
-buildGraph(1,Infinity, 'fast', '../data/gradings.json');
+buildGraph(Number(process.argv[2]), Number(process.argv[3]), 'fast', '../data/scores.json', true);

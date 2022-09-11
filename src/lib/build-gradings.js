@@ -45,7 +45,6 @@ export function gradeSingleWord(solution, word) {
   return gradeToNumber(grade);
 }
 
-
 /**
  * Prepares the gradings file. This contains the scores for all words for all solutions.
  * @param {string[]} solutions
@@ -67,7 +66,6 @@ export function gradeSingleWord(solution, word) {
   return allGrades;
 };
 
-
 /**
  * Modifies the gradings data from array to set for faster lookup.
  * @param {Grades[]} gradings
@@ -82,6 +80,7 @@ export function gradeSingleWord(solution, word) {
     return gradeSet;
   });
 }
+
 /**
  * Retrieves the gradings, either from a file or by calculating them from words and solutions.
  * @param {string[]} solutions 
