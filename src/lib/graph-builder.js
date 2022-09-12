@@ -1,4 +1,4 @@
-import { writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 import {loadData} from './load-data.js';
 import {gradeSingleWord,  gradeToNumber } from './build-gradings.js';
 import {getScores} from './build-scores.js';
@@ -237,35 +237,102 @@ class GraphBuilder {
       })];
     // removing the quotes from the output to save space
     const end = new Date();
+    console.log();
     console.log(end, `done. ${end.valueOf() - start.valueOf()}ms`);
     return JSON.stringify(graph);
   }
 }
 
 /**
- * @param {number} startWord
- * @param {number} endWord
+ * @param {number[]} wordList
+ * @param {string[]} words
+ * @param {string[]} solutions
+ * @param {number[][]} scores
  * @param {string} prefix
- * @param {string?} scoringFile 
- * @param {boolean?} save
+ * @param {function} heuristic
+ * @param {boolean} save
  */
-function buildGraph(startWord = 0, endWord = Infinity, prefix, scoringFile, save) {
-  const {solutions, allWords} = loadData('../data/words.json');
-
-  const scores = getScores(solutions, allWords, scoringFile);
-  if (!scoringFile) {
-    writeFileSync('../data/scoring.json', JSON.stringify(scores));
-  }
-  for (let wordIndex = startWord; wordIndex < endWord && wordIndex < allWords.length; wordIndex++) {
-    console.log('now working on', wordIndex);
-    const graphBuilder = new GraphBuilder(scores, fastHeuristic, solutions, allWords, wordIndex);
+function buildGraph(wordList, words, solutions, scores, prefix, heuristic, save) {
+  for (const wordIndex of wordList) {
+    console.log('now working on', words[wordIndex]);
+    const graphBuilder = new GraphBuilder(scores, heuristic, solutions, words, wordIndex);
     const graph = graphBuilder.build();
     if (save) {
-      writeFileSync(`../data/graphs/${prefix}/${allWords[wordIndex]}.json`, graph);
+      console.log('saving.');
+      writeFileSync(`../data/graphs/${prefix}/${words[wordIndex]}.json`, graph);
     } else {
       console.log(graph);
     }
   }
 }
 
-buildGraph(Number(process.argv[2]), Number(process.argv[3]), 'fast', '../data/scores.json', true);
+/** 
+ * @param {string?} mode
+ * @returns {{prefix: string, heuristic: function}}
+ */
+function getHeuristic (mode) {
+  switch (mode) {
+    case 'safe':
+      return {prefix: 'safe', heuristic: safeHeuristic};
+    case 'basic':
+      return {prefix: 'basic', heuristic: basicHeuristic};
+    default:
+      return {prefix: 'fast', heuristic: fastHeuristic};
+  }
+}
+/**
+ * @param {number} start
+ * @param {number} end
+ * @param {string?} mode
+ * @param {boolean?} save
+*/ 
+function buildRange(start, end, mode = 'fast', save) {
+  const {solutions, allWords} = loadData('../data/words.json');
+  const scores = getScores(solutions, allWords, '../data/scores.json');
+  if (!existsSync('../data/scores.json')) {
+    writeFileSync('../data/scores.json', JSON.stringify(scores));
+  }
+  const wordList = [...Array(end).keys()].slice(start);
+  const {prefix, heuristic} = getHeuristic(mode);
+  buildGraph(wordList, allWords, solutions, scores, prefix, heuristic, save ?? true);
+}
+
+/**
+ * @param {string?} mode 
+ * @param {boolean?} save
+*/ 
+function buildPopular(mode = 'fast', save) {
+  const {solutions, allWords, popularWords} = loadData('../data/words.json');
+  const wordList = popularWords.map(word => allWords.indexOf(word));
+  const scores = getScores(solutions, allWords, '../data/scores.json');
+  if (!existsSync('../data/scores.json')) {
+    writeFileSync('../data/scores.json', JSON.stringify(scores));
+  }
+  const {prefix, heuristic} = getHeuristic(mode);
+  buildGraph(wordList, allWords, solutions, scores, prefix, heuristic, save ?? true);
+}
+
+function handleCLI() {
+  const args = process.argv.slice(2);
+  const command = args[0];
+  if (command === 'range') {
+    const start = Number(args[1]);
+    const end = Number(args[2]);
+    const mode = args[3];
+    const save = args[4] !== 'false';
+    console.log(`building graph from ${start} to ${end} using heuristic ${mode} and ${save ? 'saving' : 'not saving'}`);
+    return buildRange(start, end, mode, save);
+  }
+  if (command === 'popular') {
+    const mode = args[1];
+    const save = args[2] !== 'false'
+    console.log(`building graph for popular words using heuristic ${mode} and ${save ? 'saving' : 'not saving'}`);
+    return buildPopular(mode, save);
+  }
+  console.log('command not recognized');
+  console.log('usage:');
+  console.log('graph-builder range <start> <end>');
+  console.log('graph-builder popular');
+}
+
+handleCLI();
