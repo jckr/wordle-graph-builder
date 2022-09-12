@@ -6,9 +6,9 @@ import {getScores} from './build-scores.js';
 /**
  *  @typedef {{[key: string]: number[]}} Grades
  *  @typedef {{[key: string]: Set<number>}} GradeSet
- *  @typedef {{grade: number, solution: number}} Solution
- *  @typedef {{grade: number, move: number, children: (Solution|Branch)[]}} Branch
- *  @typedef {{root: number, children: (Solution|Branch)[]}} Graph
+ *  @typedef {number[]} Solution
+ *  @typedef {(number|Solution|Branch)[]} Branch
+ *  @typedef {(number|Solution|Branch)[]} Graph
  */
 
 /**
@@ -187,25 +187,24 @@ class GraphBuilder {
     // if there is just one possible solution, we know this is the best move. 
     if (possibleSolutions.length === 1) {
       const solution = possibleSolutions[0];
-      return {
+      return [
         grade,
         solution
-      };
+      ];
     }
     if (possibleSolutions.length === 2) {
       const [firstSolution, secondSolution] = possibleSolutions;
-      return {
+      return [
         grade,
-        move: firstSolution,
-        children: [{
-          grade: this.scores[firstSolution][firstSolution],
-          solution: firstSolution,
-        },
-        {
-          grade: this.scores[secondSolution][firstSolution],
-          solution: secondSolution
-        }]
-      };
+        firstSolution,
+        [
+          [this.scores[firstSolution][firstSolution],
+          firstSolution],
+        [
+          this.scores[secondSolution][firstSolution],
+          secondSolution
+        ]
+      ]];
     }
     // if there are more than two possible solutions, we use the heuristic function
     // to determine the best move. 
@@ -219,11 +218,7 @@ class GraphBuilder {
         solutions, 
       ));
       
-    return {
-      move: bestMove,
-      grade,
-      children
-    };  
+    return [grade, bestMove, children];  
   }
   /**
    * 
@@ -234,16 +229,16 @@ class GraphBuilder {
     const groupsForRoot = this.groupSolutions(this.wordIndex, allSolutions);
     const start = new Date();
     console.log(start, 'Building graph...');
-    /** @type {Graph} */ const graph = {
-      root: this.wordIndex,
-      children: Object.entries(groupsForRoot).map(([grade, remainingSolutions]) => {
+    const graph = [
+      -1,
+      this.wordIndex,
+      Object.entries(groupsForRoot).map(([grade, remainingSolutions]) => {
         return this.nextMove(Number(grade), remainingSolutions, 1);
-      })
-    };
+      })];
     // removing the quotes from the output to save space
     const end = new Date();
     console.log(end, `done. ${end.valueOf() - start.valueOf()}ms`);
-    return `export default ${JSON.stringify(graph).replaceAll('"', '')};`;
+    return JSON.stringify(graph);
   }
 }
 
@@ -266,7 +261,7 @@ function buildGraph(startWord = 0, endWord = Infinity, prefix, scoringFile, save
     const graphBuilder = new GraphBuilder(scores, fastHeuristic, solutions, allWords, wordIndex);
     const graph = graphBuilder.build();
     if (save) {
-      writeFileSync(`../data/graphs/${prefix}/${allWords[wordIndex]}.js`, graph);
+      writeFileSync(`../data/graphs/${prefix}/${allWords[wordIndex]}.json`, graph);
     } else {
       console.log(graph);
     }
