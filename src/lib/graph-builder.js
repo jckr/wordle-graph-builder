@@ -165,7 +165,8 @@ class GraphBuilder {
   build() {
     const allSolutions = [...Array(this.nbSolutions).keys()];
     const groupsForRoot = this.groupSolutions(this.wordIndex, allSolutions);
-    console.log('Building graph...');
+    const start = new Date();
+    console.log(start, 'Building graph...');
     /** @type {Graph} */ const graph = {
       root: this.wordIndex,
       children: Object.entries(groupsForRoot).map(([grade, remainingSolutions]) => {
@@ -173,7 +174,9 @@ class GraphBuilder {
       })
     };
     // removing the quotes from the output to save space
-    return JSON.stringify(graph).replaceAll('"', '');
+    const end = new Date();
+    console.log(end, `done. ${end.valueOf() - start.valueOf()}ms`);
+    return `export default ${JSON.stringify(graph).replaceAll('"', '')};`;
   }
 }
 
@@ -196,7 +199,7 @@ function buildGraph(startWord = 0, endWord = Infinity, prefix, scoringFile, save
     const graphBuilder = new GraphBuilder(scores, fastHeuristic, solutions, allWords, wordIndex);
     const graph = graphBuilder.build();
     if (save) {
-      writeFileSync(`../data/graphs/${prefix}/${allWords[wordIndex]}.json`, graph);
+      writeFileSync(`../data/graphs/${prefix}/${allWords[wordIndex]}.js`, graph);
     } else {
       console.log(graph);
     }
