@@ -1,8 +1,46 @@
 import { readFileSync } from 'node:fs';
-import {gradeSingleWord} from './build-gradings.js';
 /**
  * @typedef {number[][]} score
  */
+
+/**
+ * @param {string} grade
+ * @returns {number} */
+function gradeToNumber(grade) {
+  const letters = grade.split('');
+  return letters.reverse().reduce((prev, letter, index) => {
+    if (letter === 'P') {
+      return prev + 1000 + 10 * index;
+    }
+    if (letter === 'p') {
+      return prev + 100 + index;
+    }
+    return prev;
+  }, 0);
+};
+/**
+ * For a given solution and a given word, finds the score that entering this word would give.
+ * This is used to prepare the gradings file. 
+ * @param {string} solution
+ * @param {string} word
+ * @returns {number} */
+function gradeSingleWord(solution, word) {
+  const solutionLetters = solution.split('');
+  const wordLetters = word.split('');
+  let grade = '';
+  for (let i = 0; i < solutionLetters.length; i++) {
+    const solutionLetter = solutionLetters[i];
+    const wordLetter = wordLetters[i];
+    if (solutionLetter === wordLetter) {
+      grade += 'P';
+    } else if (solutionLetters.includes(wordLetter)) {
+      grade += 'p';
+    } else {
+      grade += 'A';
+    }
+  }
+  return gradeToNumber(grade);
+}
 
 /**
  * Prepares the gradings file. This contains the scores for all words for all solutions.
