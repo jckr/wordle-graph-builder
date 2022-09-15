@@ -6,13 +6,13 @@ import { readFileSync } from 'node:fs';
 /**
  * @param {string} grade
  * @returns {number} */
-function gradeToNumber(grade) {
+export function gradeToNumber(grade) {
   const letters = grade.split('');
   return letters.reverse().reduce((prev, letter, index) => {
-    if (letter === 'P') {
+    if (letter === 'C') {
       return prev + 1000 + 10 * index;
     }
-    if (letter === 'p') {
+    if (letter === 'P') {
       return prev + 100 + index;
     }
     return prev;
@@ -24,7 +24,7 @@ function gradeToNumber(grade) {
  * @param {string} solution
  * @param {string} word
  * @returns {number} */
-function gradeSingleWord(solution, word) {
+ export function gradeSingleWord(solution, word) {
   const solutionLetters = solution.split('');
   const wordLetters = word.split('');
   let grade = '';
@@ -32,9 +32,9 @@ function gradeSingleWord(solution, word) {
     const solutionLetter = solutionLetters[i];
     const wordLetter = wordLetters[i];
     if (solutionLetter === wordLetter) {
-      grade += 'P';
+      grade += 'C';
     } else if (solutionLetters.includes(wordLetter)) {
-      grade += 'p';
+      grade += 'P';
     } else {
       grade += 'A';
     }
@@ -47,7 +47,7 @@ function gradeSingleWord(solution, word) {
  * @param {string[]} solutions
  * @param {string[]} words
  * @returns {score} */
-function scoreAllWords(solutions, words) {
+ export function scoreAllWords(solutions, words) {
   const allScores = [];
   console.log('scoring');
   for (let solutionsIndex = 0; solutionsIndex < solutions.length; solutionsIndex++) {
@@ -70,11 +70,12 @@ function scoreAllWords(solutions, words) {
  * @param {string[]} solutions 
  * @param {string[]} words 
  * @param {string?} scoringFile 
+ * @param {function?} read
  * @returns {score}
  */
- export function getScores(solutions, words, scoringFile) {
+ export function getScores(solutions, words, scoringFile, read = readFileSync) {
   if (scoringFile) {
-    const gradingsRaw = readFileSync(scoringFile, 'utf8');
+    const gradingsRaw = read(scoringFile, 'utf8');
     return JSON.parse(gradingsRaw);
   }  
   return scoreAllWords(solutions, words);;
