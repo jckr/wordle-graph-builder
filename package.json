@@ -1,5 +1,11 @@
 {
 	"name": "wordle-graph-builder",
 	"version": "0.0.1",
-	"type": "module"
+	"type": "module",
+	"scripts": {
+		"test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+	},
+	"devDependencies": {
+		"jest": "^29.0.3"
+	}
 }
