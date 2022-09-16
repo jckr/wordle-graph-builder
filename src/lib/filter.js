@@ -7,7 +7,7 @@ export class Filter {
    * @param {string} letter 
    * @param {number} position 
    */
-  _addCorrect(letter, position) {
+  #addCorrect(letter, position) {
     if (this.absent.has(letter)) {
       throw(`Letter ${letter} can't be correct and absent`);
     }
@@ -27,7 +27,7 @@ export class Filter {
    * 
    * @param {string} letter 
    */
-  _addAbsent(letter) {
+  #addAbsent(letter) {
     if (this.correct[letter]) {
       throw(`Letter ${letter} can't be correct and absent`);
     }
@@ -41,7 +41,7 @@ export class Filter {
    * @param {string} letter 
    * @param {number} position 
    */
-  _addPresent(letter, position) {
+  #addPresent(letter, position) {
     if (this.absent.has(letter)) {
       throw(`Letter ${letter} can't be present and absent`);
     }
@@ -59,7 +59,7 @@ export class Filter {
     if (Object.keys(this.present).length === 5) {
       'abcdefghijklmnopqrstuvwxyz'.split('').forEach(letter => {
         if (!this.present[letter] && !this.correct[letter]) {
-          this._addAbsent(letter);
+          this.#addAbsent(letter);
         }
       });
     }
@@ -81,14 +81,32 @@ export class Filter {
       const g = grade[p];
       const letter = letters[p];
       if (g === 'C') {
-        this._addCorrect(letter, p);
+        this.#addCorrect(letter, p);
       } else if (g === 'P') {
-        this._addPresent(letter, p);
+        this.#addPresent(letter, p);
       } else if (g === 'A') {
-        this._addAbsent(letter);
+        this.#addAbsent(letter);
       } else {
         throw(`Unknown grade ${g}`);
       }
     }
+  }
+  derive(word, grade) {
+    const f = new Filter();
+    for (const a of this.absent) {
+      f.#addAbsent(a);
+    }
+    for (const c in this.correct) {
+      for (const i of this.correct[c]) {
+        f.#addCorrect(c, i);
+      }
+    }
+    for (const p in this.present) {
+      for (const i of this.present[p]) {
+        f.#addPresent(p, i);
+      }
+    }
+    f.add(word, grade);
+    return f;
   }
 }

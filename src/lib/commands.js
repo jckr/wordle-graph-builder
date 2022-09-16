@@ -3,10 +3,10 @@ import {GraphBuilder} from './graph-builder.js';
 import {loadData} from './load-data.js';
 import {getScores} from './build-scores.js';
 import {getHeuristic} from './heuristics.js';
-
+import {Word} from './word.js';
 /**
  * @param {number[]} wordList
- * @param {string[]} words
+ * @param {Word[]} words
  * @param {string[]} solutions
  * @param {number[][]} scores
  * @param {string} prefix
@@ -15,12 +15,12 @@ import {getHeuristic} from './heuristics.js';
  */
  function buildGraph(wordList, words, solutions, scores, prefix, heuristic, save) {
   for (const wordIndex of wordList) {
-    console.log('now working on', words[wordIndex]);
+    console.log('now working on', words[wordIndex].word);
     const graphBuilder = new GraphBuilder(scores, heuristic, solutions, words, wordIndex);
     const graph = graphBuilder.build();
     if (save) {
       console.log('saving.');
-      writeFileSync(`./src/data/graphs/${prefix}/${words[wordIndex]}.json`, graph);
+      writeFileSync(`./src/data/graphs/${prefix}/${words[wordIndex].word}.json`, graph);
     } else {
       console.log(graph);
     }
@@ -50,11 +50,10 @@ export function buildRange(start, end, mode = 'fast', save) {
 */ 
 export function buildPopular(mode = 'fast', save) {
   const {solutions, allWords, popularWords} = loadData('./src/data/words.json');
-  const wordList = popularWords.map(word => allWords.indexOf(word));
   const scores = getScores(solutions, allWords, './src/data/scores.json');
   if (!existsSync('./src/data/scores.json')) {
     writeFileSync('./src/data/scores.json', JSON.stringify(scores));
   }
   const {prefix, heuristic} = getHeuristic(mode);
-  buildGraph(wordList, allWords, solutions, scores, prefix, heuristic, save ?? true);
+  buildGraph(popularWords, allWords, solutions, scores, prefix, heuristic, save ?? true);
 }
