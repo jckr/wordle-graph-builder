@@ -98,7 +98,7 @@ export function fastHeuristic(graphBuilder, possibleSolutions) {
 */
 export function safeHeuristic(graphBuilder, possibleSolutions) {
   const solutionSet = new Set(possibleSolutions);
-  let bestScore = {worst: 0, hasWord: false};
+  let bestScore = {worst: Infinity, hasWord: false};
   let bestMove = 0;  
   /** @type Grades */ let bestGroups = {};
   for (let wordIndex = 0; wordIndex < graphBuilder.nbWords; wordIndex++) {
