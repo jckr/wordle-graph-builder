@@ -7,6 +7,6 @@ describe('renderer works', () => {
   const graphAsArray = JSON.parse(readFileSync('src/__tests__/testdata/cigar.json', 'utf8'));
   test('rendering cigar', () => {
     const tree = renderer(graphAsArray, wordList);
-    expect(tree).toMatchSnapshot();
+    expect(tree.movesTally).toMatchSnapshot();
   });
 })
