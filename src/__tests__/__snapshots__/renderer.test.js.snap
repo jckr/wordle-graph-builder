@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`renderer works rendering cigar 1`] = `
+[
+  0,
+  1,
+  35,
+  319,
+  627,
+  1191,
+  136,
+]
+`;
