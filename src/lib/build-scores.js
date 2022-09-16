@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import {grades} from './grades.js';
+import grades from '../data/grades.js';
 /**
  * @typedef {number[][]} score
  */
