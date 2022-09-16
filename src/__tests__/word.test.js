@@ -1,5 +1,7 @@
 import { Word } from "../lib/word";
 import { Filter } from "../lib/filter";
+import { readFileSync } from 'node:fs';
+
 
 describe('Word works', () => {
   const word = new Word('abcde');
@@ -37,4 +39,39 @@ describe('filters can effectively filter a word list', () => {
     expect(filteredWordList[0].word).toBe('slate');
   })
 
+});
+
+describe('filters are efficient in selecting words in a list', () => {
+  console.log(process.cwd());
+  const rawData = readFileSync('./src/data/words.json', 'utf8');
+  const {solutions, validWords} = JSON.parse(rawData);
+  const allWords = solutions.concat(validWords);
+  const wordList = allWords.map(word => new Word(word));
+  const filter = new Filter();
+ 
+  
+  test('lalala', () => {
+    let p0 = performance.now();
+    let wordList2 = wordList.filter(word => word.satisfies(filter));
+    let p1 = performance.now();
+    console.log(`filtering with no criteria took ${p1 - p0} milliseconds.`);
+    expect(wordList2.length).toBe(wordList.length);
+    filter.add('caret', 'AAAAA');
+    p0 = performance.now();
+    wordList2 = wordList2.filter(word => word.satisfies(filter));
+    p1 = performance.now();
+    console.log(`further filtering took ${p1 - p0} milliseconds.`);
+    expect(wordList2.length).toBe(1554);
+    filter.add('spumy', 'PAPAP');
+    p0 = performance.now();
+    wordList2 = wordList2.filter(word => word.satisfies(filter));
+    p1 = performance.now();
+    console.log(`further filtering took ${p1 - p0} milliseconds.`);
+    expect(wordList2.length).toBe(3);
+    p0 = performance.now();
+    const wordList3 = allWords.filter(d => d.split('').every(letter => 'caret'.split('').every(l2 => l2 !== letter)));
+    p1 = performance.now();
+    console.log(`filtering raw array took ${p1 - p0} milliseconds.`);
+    expect(wordList3.length).toBe(1554);
+  });
 });
