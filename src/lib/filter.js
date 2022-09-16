@@ -106,7 +106,6 @@ export class Filter {
         f.#addPresent(p, i);
       }
     }
-    f.add(word, grade);
     return f;
   }
 }

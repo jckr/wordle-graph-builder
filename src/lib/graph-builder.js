@@ -50,9 +50,6 @@ export class GraphBuilder {
         // and a subset of the words of the previous step. 
         // the idea is that as we get grades, we can make the filter narrower and narrower, and the set of
         // useful words smaller and smaller, so that going through these words will take much less time.
-        if (this.words[solutionIndex].word === 'flume') {
-          debugger;
-        }
         const gradeInString = numberToGrade(grade);
         const newFilter = filter.derive(word.word, gradeInString);
         const updatedUsefulWords = usefulWords.filter(index => {
@@ -60,6 +57,7 @@ export class GraphBuilder {
           return word.satisfies(newFilter)
         });
         groups[grade] = {possibleSolutions: [], usefulWords: updatedUsefulWords, filter: newFilter};
+       
       }
       // we now add the solution to that step. 
       groups[grade].possibleSolutions.push(solutionIndex);
