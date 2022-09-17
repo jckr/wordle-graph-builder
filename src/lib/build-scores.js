@@ -73,9 +73,12 @@ export function numberToGrade(number) {
  * @returns {score}
  */
  export function getScores(solutions, words, scoringFile, read = readFileSync) {
-  if (scoringFile) {
+  try {
+    if (scoringFile) {
     const gradingsRaw = read(scoringFile, 'utf8');
     return JSON.parse(gradingsRaw);
-  }  
-  return scoreAllWords(solutions, words);;
+  }}
+  catch(e) {
+    return scoreAllWords(solutions, words);
+  } 
 }
