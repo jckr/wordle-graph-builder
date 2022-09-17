@@ -9,7 +9,8 @@ import { numberToGrade } from "./build-scores";
  * @param {string[]} wordList
  */
 export function renderer(graphAsArray, wordList) {
-  return renderBranch(graphAsArray, wordList, 1);
+  const tree = renderBranch(graphAsArray, wordList, 1);
+  return computeAngle(tree, 0, 2 * Math.PI);
 }
 
 /**
@@ -62,5 +63,18 @@ function renderBranch(branch, wordList, nbMoves) {
     move: wordList[branch[1]],
     nbSolutions,
     size
+  };
+}
+
+function computeAngle(tree, minAngle, maxAngle) {
+  let runningAngle = minAngle;
+  return {
+    ...tree,
+    minAngle,
+    maxAngle,
+    ...(tree.children ? {children: tree.children.map((child, index) => {
+      const relativeSize = (maxAngle - minAngle) * child.size / tree.size;
+      return computeAngle(child, runningAngle, runningAngle += relativeSize);
+    })} : {})
   };
 }
