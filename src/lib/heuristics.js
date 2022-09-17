@@ -35,7 +35,6 @@ export function basicHeuristic(graphBuilder, step) {
   return {bestMove, groups};
 }
 
-
 /**
  * This heuristic favors an aggressive approach. For each group of possible solutions,
  * we choose the word which has the highest chance of finding the solution rapidly. However, there are higher 
@@ -60,13 +59,13 @@ export function fastHeuristic(graphBuilder, step) {
   let bestMove = 0;  
   /** @type Steps */ let bestGroups = {};
   for (const wordIndex of usefulWords) {
-    const groups = graphBuilder.groupSolutions(wordIndex, step);
+    const groups = graphBuilder.groupSolutions(wordIndex, possibleSolutions);
     let nbGroupsWithOneWord = 0, nbGroupsWithTwoWords = 0;
     for (const group of Object.values(groups)) {
-      if (group.possibleSolutions.length === 1) {
+      if (group.length === 1) {
         nbGroupsWithOneWord++;
       }
-      if (group.possibleSolutions.length === 2) {
+      if (group.length === 2) {
         nbGroupsWithTwoWords++;
       }
     }
@@ -108,11 +107,11 @@ export function safeHeuristic(graphBuilder, step) {
   let bestMove = 0;
   /** @type Steps */ let bestGroups = {};
   for (const wordIndex of usefulWords) {
-    const groups = graphBuilder.groupSolutions(wordIndex, step);
+    const groups = graphBuilder.groupSolutions(wordIndex, possibleSolutions);
     let worst = 0;
     for (const group of Object.values(groups)) {
-      if (group.possibleSolutions.length > worst) {
-        worst = group.possibleSolutions.length;
+      if (group.length > worst) {
+        worst = group.length;
       }
     }
     if (worst < bestScore.worst ||

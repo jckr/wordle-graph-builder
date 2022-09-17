@@ -11,7 +11,9 @@ import {Word} from './word.js';
 import {Filter} from './filter.js';
 import { numberToGrade } from './build-scores.js';
 export class GraphBuilder {
-  moveCounter = 0;
+  moves = 0;
+  groupings = 0;
+  gradings = 0;
   /**
    * @param {number[][]} scores
    * @param {function} heuristic
@@ -33,34 +35,20 @@ export class GraphBuilder {
    * Every group has: one distinct grade, all the possible solutions for that grade,
    * an updated filter and a list of words that it still makes sense to try for future moves.
    * @param {number} wordIndex
-   * @param {Step} step
-   * @returns {Steps}
+   * @param {string[]} possibleSolutions
+   * @returns {Grades}
    */
-  groupSolutions(wordIndex, step) {
-    const {possibleSolutions, usefulWords, filter} = step;
-    /** @type {Steps} */const groups = {};
-
+  groupSolutions(wordIndex, possibleSolutions) {
+    /** @type {Grades} */const groups = {};
+    this.groupings++;
     const word = this.words[wordIndex];
     for (const solutionIndex of possibleSolutions) {
       const grade = this.scores[solutionIndex][wordIndex];
+      this.gradings++;
       if (groups[grade] === undefined) {
-        // the first time we score a solution with a given grade, we create a new step
-        // that will contain a subset of all the solutions for that grade, 
-        // an updated, more restrictive filter,
-        // and a subset of the words of the previous step. 
-        // the idea is that as we get grades, we can make the filter narrower and narrower, and the set of
-        // useful words smaller and smaller, so that going through these words will take much less time.
-        const gradeInString = numberToGrade(grade);
-        const newFilter = filter.derive(word.word, gradeInString);
-        const updatedUsefulWords = usefulWords.filter(index => {
-          const word = this.words[index];
-          return word.satisfies(newFilter)
-        });
-        groups[grade] = {possibleSolutions: [], usefulWords: updatedUsefulWords, filter: newFilter};
-       
+        groups[grade] = []; 
       }
-      // we now add the solution to that step. 
-      groups[grade].possibleSolutions.push(solutionIndex);
+      groups[grade].push(solutionIndex);
     }
     return groups;
   }
@@ -70,12 +58,11 @@ export class GraphBuilder {
    * @returns {Branch|Solution}
   */
   nextMove(grade, step) {
-    this.moveCounter++;
-    // if (this.moveCounter % 100 === 0) {
+    this.moves++;
+    if (this.moves % 100 === 0) {
       process.stdout.write('.');
-      debugger;
-    // }
-    const {possibleSolutions} = step;
+    }
+    const {possibleSolutions, usefulWords, filter} = step;
     // if there is just one possible solution, we know this is the best move. 
     if (possibleSolutions.length === 1) {
       const solution = possibleSolutions[0];
@@ -102,14 +89,22 @@ export class GraphBuilder {
     // to determine the best move. 
 
     const {bestMove, groups} = this.heuristic(this, step);
+    const bestWord = this.words[bestMove];
     const children = Object.entries(groups)
       // highest grade to lowest grade
       .sort((a, b) => Number(b[0]) - Number(a[0]))
-      .map(([grade, nextStep]) => this.nextMove(
+      .map(([grade, updatedPossibleSolutions]) => {
+        const updatedFilter = filter.derive(bestWord.word, numberToGrade(grade));
+        const updatedUsefulWords = usefulWords.filter(i => 
+          this.words[i].satisfies(updatedFilter));
+        return this.nextMove(
         Number(grade),
-        nextStep
-      ));
-      
+        {
+          filter: updatedFilter,
+          possibleSolutions: updatedPossibleSolutions,
+          usefulWords: updatedUsefulWords,
+        });
+      });
     return [grade, bestMove, children];  
   }
   /**
@@ -117,24 +112,19 @@ export class GraphBuilder {
    * @returns {string}
    */
   build() {
-    const step = {
-      possibleSolutions: [...Array(this.nbSolutions).keys()],
-      usefulWords: [...Array(this.nbWords).keys()],
-      filter: new Filter()
-    };
-    console.log('built root step');
-    const groupsForRoot = this.groupSolutions(this.wordIndex, step);
+    const allSolutions = [...Array(this.nbSolutions).keys()];
+    const allWords = [...Array(this.nbWords).keys()];
+    const filter = new Filter();
     const start = new Date();
     console.log(start, 'Building graph...');
-    const graph = [
-      -1,
-      this.wordIndex,
-      Object.entries(groupsForRoot).map(([grade, step]) => {
-        return this.nextMove(Number(grade), step);
-      })];
-    // removing the quotes from the output to save space
+    const graph = this.nextMove(-1, {
+      possibleSolutions: allSolutions,
+      usefulWords: allWords,
+      filter,
+    });
     const end = new Date();
     console.log();
+    console.log(`Moves: ${this.moves}, Groupings: ${this.groupings}, Gradings: ${this.gradings}`);
     console.log(end, `done. ${end.valueOf() - start.valueOf()}ms`);
     return JSON.stringify(graph);
   }
