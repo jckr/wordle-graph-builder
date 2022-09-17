@@ -30,8 +30,9 @@ import { Filter } from "./filter.js";
  * @returns {{bestMove: number, groups: Steps}}
 */
 export function basicHeuristic(graphBuilder, step) {
-  const bestMove = step.possibleSolutions[0];
-  const groups = graphBuilder.groupSolutions(bestMove, step);
+  const {possibleSolutions} = step;
+  const bestMove = possibleSolutions[0];
+  const groups = graphBuilder.groupSolutions(bestMove, possibleSolutions);
   return {bestMove, groups};
 }
 
