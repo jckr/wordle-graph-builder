@@ -1,4 +1,4 @@
-import { Filter } from "./filter";
+import { Filter } from "./filter.js";
 const allLetters = new Set('abcdefghijklmnopqrstuvwxyz'.split(''));
 export class Word {
   letterSet = new Set();
@@ -7,7 +7,7 @@ export class Word {
     this.word = word;
     this.letters = word.split('');
     if (this.letters.length !== 5) {
-      throw('Word must be 5 letters');
+      throw(`Word must be 5 letters (${word})`);
     }
     for (const letter of this.letters) {
       if (!allLetters.has(letter)) {

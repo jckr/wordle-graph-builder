@@ -36,4 +36,22 @@ describe('Filter works', () => {
     filter.add('abcde', 'PPPPP');
     expect(filter.absent.has('f')).toBe(true);
   });
+  test('filter can take several words and grades', () => {
+    const filter = new Filter();
+    filter.add('abcde', 'PPPAA');
+    filter.add('fghij', 'CCAAA');
+    expect(filter.absent.has('h')).toBe(true);
+    expect(filter.absent.has('a')).toBe(false);
+    expect(filter.present['a'].has(0)).toBe(true);
+    expect(filter.correct['f'].has(0)).toBe(true);
+    expect(filter.absent.size).toBe(5);
+  })
+});
+
+describe('Filter can be combined', () => {
+  const filter = new Filter();
+  filter.add('abcde', 'PPPAA');
+  const f = filter.derive('fghij', 'CCAAA');
+  expect(filter.correct['c']).toBe(undefined);
+  expect(f.correct['f'].has(0)).toBe(true);
 });

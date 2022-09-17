@@ -1,3 +1,8 @@
+import { Filter } from "./filter.js";
+/** 
+ *  @typedef {{possibleSolutions: number[], usefulWords: number[], filter: Filter}} Step 
+ *  @typedef {{[key: string]: Step}} Steps
+ * */
 
 /** 
  * @param {string?} mode
@@ -21,15 +26,15 @@
  * getting a group for each of them given the possible solutions. 
  * On the plus side, it is very fast. 
  * @param {GraphBuilder} graphBuilder
- * @param {number[]} possibleSolutions
- * @returns {{bestMove: number, groups: Grades}}
+ * @param {Step} step
+ * @returns {{bestMove: number, groups: Steps}}
 */
-export function basicHeuristic(graphBuilder, possibleSolutions) {
+export function basicHeuristic(graphBuilder, step) {
+  const {possibleSolutions} = step;
   const bestMove = possibleSolutions[0];
   const groups = graphBuilder.groupSolutions(bestMove, possibleSolutions);
   return {bestMove, groups};
 }
-
 
 /**
  * This heuristic favors an aggressive approach. For each group of possible solutions,
@@ -45,15 +50,16 @@ export function basicHeuristic(graphBuilder, possibleSolutions) {
  *   or two solutions, it's better to choose one that has a chance of winning in the current move.
  * 
  * @param {GraphBuilder} graphBuilder
- * @param {number[]} possibleSolutions
- * @returns {{bestMove: number, groups: Grades}}
+ * @param {Step} step
+ * @returns {{bestMove: number, groups: Steps}}
 */
-export function fastHeuristic(graphBuilder, possibleSolutions) {
+export function fastHeuristic(graphBuilder, step) {
+  const {possibleSolutions, usefulWords} = step;
   const solutionSet = new Set(possibleSolutions);
   let bestScore = {one: 0, two: 0, hasWord: false};
   let bestMove = 0;  
-  /** @type Grades */ let bestGroups = {};
-  for (let wordIndex = 0; wordIndex < graphBuilder.nbWords; wordIndex++) {
+  /** @type Steps */ let bestGroups = {};
+  for (const wordIndex of usefulWords) {
     const groups = graphBuilder.groupSolutions(wordIndex, possibleSolutions);
     let nbGroupsWithOneWord = 0, nbGroupsWithTwoWords = 0;
     for (const group of Object.values(groups)) {
@@ -76,7 +82,6 @@ export function fastHeuristic(graphBuilder, possibleSolutions) {
       bestMove = wordIndex;
       bestGroups = groups;
     }
-    wordIndex++;
   }
   return {bestMove, groups: bestGroups};
 }
@@ -93,15 +98,16 @@ export function fastHeuristic(graphBuilder, possibleSolutions) {
  *   it's better to choose one that has a chance of winning in the current move.
  * 
  * @param {GraphBuilder} graphBuilder
- * @param {number[]} possibleSolutions
- * @returns {{bestMove: number, groups: Grades}}
+ * @param {Step} step
+ * @returns {{bestMove: number, groups: Steps}}
 */
-export function safeHeuristic(graphBuilder, possibleSolutions) {
+export function safeHeuristic(graphBuilder, step) {
+  const {possibleSolutions, usefulWords} = step;
   const solutionSet = new Set(possibleSolutions);
   let bestScore = {worst: Infinity, hasWord: false};
-  let bestMove = 0;  
-  /** @type Grades */ let bestGroups = {};
-  for (let wordIndex = 0; wordIndex < graphBuilder.nbWords; wordIndex++) {
+  let bestMove = 0;
+  /** @type Steps */ let bestGroups = {};
+  for (const wordIndex of usefulWords) {
     const groups = graphBuilder.groupSolutions(wordIndex, possibleSolutions);
     let worst = 0;
     for (const group of Object.values(groups)) {
@@ -110,7 +116,7 @@ export function safeHeuristic(graphBuilder, possibleSolutions) {
       }
     }
     if (worst < bestScore.worst ||
-        worst === bestScore.worst && solutionSet.has(wordIndex)) {
+        worst === bestScore.worst && bestScore.hasWord === false && solutionSet.has(wordIndex)) {
       bestScore = {
         worst,
         hasWord: solutionSet.has(wordIndex)
@@ -118,7 +124,6 @@ export function safeHeuristic(graphBuilder, possibleSolutions) {
       bestMove = wordIndex;
       bestGroups = groups;
     }
-    wordIndex++;
   }
   return {bestMove, groups: bestGroups};
 }

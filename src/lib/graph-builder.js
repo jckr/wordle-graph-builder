@@ -1,18 +1,24 @@
 /**
  *  @typedef {{[key: string]: number[]}} Grades
+ *  @typedef {{possibleSolutions: number[], usefulWords: number[], filter: Filter}} Step
+ *  @typedef {{[key: string]: Step}} Steps
  *  @typedef {{[key: string]: Set<number>}} GradeSet
  *  @typedef {number[]} Solution
  *  @typedef {(number|Solution|Branch)[]} Branch
  *  @typedef {(number|Solution|Branch)[]} Graph
  */
-
+import {Word} from './word.js';
+import {Filter} from './filter.js';
+import { numberToGrade } from './build-scores.js';
 export class GraphBuilder {
-  moveCounter = 0;
+  moves = 0;
+  groupings = 0;
+  gradings = 0;
   /**
    * @param {number[][]} scores
    * @param {function} heuristic
    * @param {string[]} solutions
-   * @param {string[]} words
+   * @param {Word[]} words
    * @param {number} wordIndex
    */
   constructor(scores, heuristic, solutions, words, wordIndex) {
@@ -25,29 +31,38 @@ export class GraphBuilder {
     this.wordIndex = wordIndex;
   }
   /**
+   * Given a word index, groups the remaining solutions into groups by grade.
+   * Every group has: one distinct grade, all the possible solutions for that grade,
+   * an updated filter and a list of words that it still makes sense to try for future moves.
    * @param {number} wordIndex
-   * @param {number[]} possibleSolutions 
+   * @param {string[]} possibleSolutions
    * @returns {Grades}
    */
   groupSolutions(wordIndex, possibleSolutions) {
     /** @type {Grades} */const groups = {};
+    this.groupings++;
+    const word = this.words[wordIndex];
     for (const solutionIndex of possibleSolutions) {
       const grade = this.scores[solutionIndex][wordIndex];
-      groups[grade] = groups[grade] || [];
+      this.gradings++;
+      if (groups[grade] === undefined) {
+        groups[grade] = []; 
+      }
       groups[grade].push(solutionIndex);
     }
     return groups;
   }
   /**
    * @param {number} grade
-   * @param {number[]} possibleSolutions
+   * @param {Step} step
    * @returns {Branch|Solution}
   */
-  nextMove(grade, possibleSolutions) {
-    this.moveCounter++;
-    if (this.moveCounter % 100 === 0) {
+  nextMove(grade, step) {
+    this.moves++;
+    if (this.moves % 100 === 0) {
       process.stdout.write('.');
     }
+    const {possibleSolutions, usefulWords, filter} = step;
     // if there is just one possible solution, we know this is the best move. 
     if (possibleSolutions.length === 1) {
       const solution = possibleSolutions[0];
@@ -73,15 +88,23 @@ export class GraphBuilder {
     // if there are more than two possible solutions, we use the heuristic function
     // to determine the best move. 
 
-    const {bestMove, groups} = this.heuristic(this, possibleSolutions);
+    const {bestMove, groups} = this.heuristic(this, step);
+    const bestWord = this.words[bestMove];
     const children = Object.entries(groups)
       // highest grade to lowest grade
       .sort((a, b) => Number(b[0]) - Number(a[0]))
-      .map(([grade, solutions]) => this.nextMove(
+      .map(([grade, updatedPossibleSolutions]) => {
+        const updatedFilter = filter.derive(bestWord.word, numberToGrade(grade));
+        const updatedUsefulWords = usefulWords.filter(i => 
+          this.words[i].satisfies(updatedFilter));
+        return this.nextMove(
         Number(grade),
-        solutions, 
-      ));
-      
+        {
+          filter: updatedFilter,
+          possibleSolutions: updatedPossibleSolutions,
+          usefulWords: updatedUsefulWords,
+        });
+      });
     return [grade, bestMove, children];  
   }
   /**
@@ -90,18 +113,18 @@ export class GraphBuilder {
    */
   build() {
     const allSolutions = [...Array(this.nbSolutions).keys()];
-    const groupsForRoot = this.groupSolutions(this.wordIndex, allSolutions);
+    const allWords = [...Array(this.nbWords).keys()];
+    const filter = new Filter();
     const start = new Date();
     console.log(start, 'Building graph...');
-    const graph = [
-      -1,
-      this.wordIndex,
-      Object.entries(groupsForRoot).map(([grade, remainingSolutions]) => {
-        return this.nextMove(Number(grade), remainingSolutions, 1);
-      })];
-    // removing the quotes from the output to save space
+    const graph = this.nextMove(-1, {
+      possibleSolutions: allSolutions,
+      usefulWords: allWords,
+      filter,
+    });
     const end = new Date();
     console.log();
+    console.log(`Moves: ${this.moves}, Groupings: ${this.groupings}, Gradings: ${this.gradings}`);
     console.log(end, `done. ${end.valueOf() - start.valueOf()}ms`);
     return JSON.stringify(graph);
   }
